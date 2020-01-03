@@ -68,7 +68,7 @@ def dismiss_newer_version():
     except RuntimeError:
         pass
 
-def eeschema_plot_schematic(output_directory, file_format, all_pages):
+def eeschema_plot_schematic(output_directory, file_format, all_pages, default_directory):
     if file_format not in ('pdf', 'svg'):
         raise ValueError("file_format should be 'pdf' or 'svg'")
 
@@ -87,8 +87,10 @@ def eeschema_plot_schematic(output_directory, file_format, all_pages):
 
     wait_for_window('plot', 'Plot')
 
-    logger.info('Paste output directory')
-    xdotool(['key', 'ctrl+v'])
+    # Kicad defaults to project directory when given no output directory
+    if not default_directory:
+        logger.info('Paste output directory')
+        xdotool(['key', 'ctrl+v'])
 
     command_list = ['key',
         'Tab',
@@ -135,7 +137,7 @@ def set_default_plot_option():
         os.remove(in_p)
         os.rename(out_p, in_p)
 
-def eeschema_export_schematic(schematic, output_dir, file_format="svg", all_pages=False):
+def eeschema_export_schematic(schematic, output_dir, file_format="svg", all_pages=False, default_directory=False):
     screencast_output_file = os.path.join(output_dir, 'export_schematic_screencast.ogv')
     file_format = file_format.lower()
     output_file = os.path.join(output_dir, os.path.splitext(os.path.basename(schematic))[0]+'.'+file_format)
@@ -148,7 +150,7 @@ def eeschema_export_schematic(schematic, output_dir, file_format="svg", all_page
 
     with recorded_xvfb(screencast_output_file, width=800, height=600, colordepth=24):
         with PopenContext(['eeschema', schematic], close_fds=True) as eeschema_proc:
-            eeschema_plot_schematic(output_dir, file_format, all_pages)
+            eeschema_plot_schematic(output_dir, file_format, all_pages, default_directory)
             try:
                 file_util.wait_for_file_created_by_process(eeschema_proc.pid, output_file)
             except RuntimeError:
@@ -292,6 +294,9 @@ if __name__ == '__main__':
     export_parser.add_argument('--all_pages', '-a', help='Plot all schematic pages in one file',
         action='store_true'
     )
+    export_parser.add_argument('--default_directory', '-d', help='Plot schematic pages in project directory rather than output directory',
+        action='store_true'
+    )
 
     erc_parser = subparsers.add_parser('run_erc', help='Run Electrical Rules Checker on a schematic')
     erc_parser.add_argument('--warnings_as_errors', '-w', help='Treat warnings as errors',
@@ -312,7 +317,7 @@ if __name__ == '__main__':
     file_util.mkdir_p(output_dir)
 
     if args.command == 'export':
-        eeschema_export_schematic(schematic, output_dir, args.file_format, args.all_pages)
+        eeschema_export_schematic(schematic, output_dir, args.file_format, args.all_pages, args.default_directory)
         exit(0)
     if args.command == 'run_erc':
         errors = eeschema_run_erc(schematic, output_dir, args.warnings_as_errors, args.junit_xml)
