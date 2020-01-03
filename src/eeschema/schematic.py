@@ -121,7 +121,11 @@ def set_default_plot_option():
         in_f = open(in_p)
         out_f = open(out_p, 'w')
         for in_line in in_f:
-            param, value = in_line.split('=', 1)
+            try:
+                param, value = in_line.split('=', 1)
+            except ValueError:
+                param = ''
+            
             if param == 'PlotFormat':
                 out_line = 'PlotFormat=0\n'  # 1: ps, 4: pdf, 5:svg, 3: dxf, 0: hpgl
             else:
@@ -145,7 +149,10 @@ def eeschema_export_schematic(schematic, output_dir, file_format="svg", all_page
     with recorded_xvfb(screencast_output_file, width=800, height=600, colordepth=24):
         with PopenContext(['eeschema', schematic], close_fds=True) as eeschema_proc:
             eeschema_plot_schematic(output_dir, file_format, all_pages)
-            file_util.wait_for_file_created_by_process(eeschema_proc.pid, output_file)
+            try:
+                file_util.wait_for_file_created_by_process(eeschema_proc.pid, output_file)
+            except RuntimeError:
+                pass
             eeschema_proc.terminate()
 
     return output_file

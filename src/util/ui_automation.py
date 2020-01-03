@@ -67,11 +67,14 @@ def xdotool(command):
     return subprocess.check_output(['xdotool'] + command)
 
 def clipboard_store(string):
-    p = subprocess.Popen(['xclip', '-selection', 'clipboard'], stdin=subprocess.PIPE)
-    outs, errs = p.communicate(input=string)
-    if (errs):
+    errs = os.system("echo \"" + string + "\" | xclip -selection clipboard")
+    if (errs != 0):
         logger.error('Failed to store string in clipboard')
-        logger.error(errs)
+    #p = subprocess.Popen(['xclip', '-selection', 'clipboard'], stdin=subprocess.PIPE)
+    #outs, errs = p.communicate(input=string)
+    #if (errs):
+    #    logger.error('Failed to store string in clipboard')
+    #    logger.error(errs)
 
 def clipboard_retrieve():
     p = subprocess.Popen(['xclip', '-o', '-selection', 'clipboard'], stdout=subprocess.PIPE)
